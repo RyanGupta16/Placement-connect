@@ -9,7 +9,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+interface RequestBody {
+  user_id: string;
+  resume_id: string;
+  file_name: string;
+  text_content?: string;
+}
+
+interface AnalysisData {
+  clarity_score: number;
+  strengths: string[];
+  missing_sections: string[];
+  improvements: string[];
+}
+
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -24,7 +38,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { user_id, resume_id, file_name, text_content } = await req.json()
+    const { user_id, resume_id, file_name, text_content } = await req.json() as RequestBody
 
     // Validate inputs
     if (!user_id || !resume_id) {
@@ -102,13 +116,13 @@ Return ONLY valid JSON, no additional text.`
     const responseText = geminiData.candidates[0].content.parts[0].text
     
     // Parse JSON from response (handle potential markdown code blocks)
-    let analysisData
+    let analysisData: AnalysisData
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
-        analysisData = JSON.parse(jsonMatch[0])
+        analysisData = JSON.parse(jsonMatch[0]) as AnalysisData
       } else {
-        analysisData = JSON.parse(responseText)
+        analysisData = JSON.parse(responseText) as AnalysisData
       }
     } catch (parseError) {
       console.error('Failed to parse Gemini response:', responseText)
@@ -142,10 +156,11 @@ Return ONLY valid JSON, no additional text.`
 
   } catch (error) {
     console.error('Error in analyze-resume function:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
+        error: errorMessage,
         clarity_score: 70,
         strengths: ['Resume received', 'Basic structure present'],
         missing_sections: ['Unable to fully analyze'],

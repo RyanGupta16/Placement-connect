@@ -9,7 +9,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+interface ConversationMessage {
+  role: string;
+  content: string;
+  timestamp?: string;
+}
+
+interface RequestBody {
+  action: string;
+  conversation: ConversationMessage[];
+  question_number?: number;
+}
+
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -24,7 +36,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { action, conversation, question_number } = await req.json()
+    const { action, conversation, question_number } = await req.json() as RequestBody
 
     if (action === 'get_question') {
       // Generate interview question
@@ -33,7 +45,7 @@ serve(async (req) => {
 This is question ${question_number} of 5.
 
 Previous conversation:
-${conversation.map(m => `${m.role === 'ai' ? 'Interviewer' : 'Candidate'}: ${m.content}`).join('\n')}
+${conversation.map((m: ConversationMessage) => `${m.role === 'ai' ? 'Interviewer' : 'Candidate'}: ${m.content}`).join('\n')}
 
 Generate ONE appropriate HR interview question. The question should be:
 - Professional and relevant for entry-level positions
@@ -78,7 +90,7 @@ Return ONLY the question text, no additional formatting or explanations.`
     } else if (action === 'analyze') {
       // Analyze interview performance
       const conversationText = conversation
-        .map(m => `${m.role === 'ai' ? 'Q' : 'A'}: ${m.content}`)
+        .map((m: ConversationMessage) => `${m.role === 'ai' ? 'Q' : 'A'}: ${m.content}`)
         .join('\n\n')
 
       const prompt = `Analyze this mock HR interview for an Indian college student:
@@ -168,9 +180,10 @@ Return ONLY valid JSON.`
 
   } catch (error) {
     console.error('Error in mock-interview function:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
