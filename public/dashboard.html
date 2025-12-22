@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PlacementIQ</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="dashboard-nav">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>PlacementIQ</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link active">Dashboard</a>
+                <a href="resume.html" class="nav-link">Resume Analysis</a>
+                <a href="eligibility.html" class="nav-link">Eligibility Checker</a>
+                <a href="interview.html" class="nav-link">Mock Interview</a>
+            </div>
+            <div class="nav-user">
+                <span id="userName">Loading...</span>
+                <button id="logoutBtn" class="btn btn-outline btn-small">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Dashboard -->
+    <main class="dashboard-main">
+        <div class="container">
+            <!-- Welcome Section -->
+            <section class="dashboard-header">
+                <h2>Welcome back, <span id="userNameDisplay">Student</span>! 👋</h2>
+                <p>Here's your placement preparation overview</p>
+            </section>
+
+            <!-- Stats Grid -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📄</div>
+                    <div class="stat-content">
+                        <h3>Resume Score</h3>
+                        <div class="stat-value" id="resumeScore">--</div>
+                        <p class="stat-label">out of 100</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">💬</div>
+                    <div class="stat-content">
+                        <h3>Interview Sessions</h3>
+                        <div class="stat-value" id="interviewCount">0</div>
+                        <p class="stat-label">completed</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🏢</div>
+                    <div class="stat-content">
+                        <h3>Eligibility Checks</h3>
+                        <div class="stat-value" id="eligibilityCount">0</div>
+                        <p class="stat-label">companies checked</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <h3>Profile Strength</h3>
+                        <div class="stat-value" id="profileStrength">--</div>
+                        <p class="stat-label">completion</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <section class="quick-actions">
+                <h3>Quick Actions</h3>
+                <div class="action-cards">
+                    <a href="resume.html" class="action-card">
+                        <div class="action-icon">📄</div>
+                        <h4>Analyze Resume</h4>
+                        <p>Upload and get AI-powered feedback</p>
+                    </a>
+
+                    <a href="eligibility.html" class="action-card">
+                        <div class="action-icon">🏢</div>
+                        <h4>Check Eligibility</h4>
+                        <p>See which companies you qualify for</p>
+                    </a>
+
+                    <a href="interview.html" class="action-card">
+                        <div class="action-icon">💬</div>
+                        <h4>Start Mock Interview</h4>
+                        <p>Practice with AI interviewer</p>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Recent Activity -->
+            <section class="recent-activity">
+                <h3>Recent Activity</h3>
+                <div id="activityList" class="activity-list">
+                    <div class="empty-state">
+                        <p>No recent activity yet. Start preparing!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Summary -->
+            <section class="profile-summary">
+                <h3>Your Profile</h3>
+                <div class="profile-card">
+                    <div class="profile-info" id="profileInfo">
+                        <p><strong>College:</strong> <span id="profileCollege">--</span></p>
+                        <p><strong>Branch:</strong> <span id="profileBranch">--</span></p>
+                        <p><strong>Year:</strong> <span id="profileYear">--</span></p>
+                        <p><strong>CGPA:</strong> <span id="profileCGPA">--</span></p>
+                        <p><strong>Skills:</strong> <span id="profileSkills">--</span></p>
+                    </div>
+                    <button class="btn btn-outline" id="editProfileBtn">Edit Profile</button>
+                </div>
+            </section>
+
+            <!-- Disclaimer -->
+            <section class="dashboard-disclaimer">
+                <div class="disclaimer-box">
+                    <p><strong>⚠️ Remember:</strong> PlacementIQ helps you PREPARE for placements. We do not guarantee job offers, and all AI feedback is for guidance only.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Profile</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <form id="editProfileForm" class="modal-form">
+                <div class="form-group">
+                    <label for="editCollege">College</label>
+                    <input type="text" id="editCollege" required>
+                </div>
+                <div class="form-group">
+                    <label for="editBranch">Branch</label>
+                    <select id="editBranch" required>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Information Technology">Information Technology</option>
+                        <option value="Electronics & Communication">Electronics & Communication</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Mechanical">Mechanical</option>
+                        <option value="Civil">Civil</option>
+                        <option value="Chemical">Chemical</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editYear">Year</label>
+                    <select id="editYear" required>
+                        <option value="1">1st Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editCGPA">CGPA</label>
+                    <input type="number" id="editCGPA" step="0.01" min="0" max="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="editSkills">Skills (comma-separated)</label>
+                    <input type="text" id="editSkills">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" id="cancelEdit">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

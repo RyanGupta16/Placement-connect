@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Eligibility - PlacementIQ</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="dashboard-nav">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>PlacementIQ</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <a href="resume.html" class="nav-link">Resume Analysis</a>
+                <a href="eligibility.html" class="nav-link active">Eligibility Checker</a>
+                <a href="interview.html" class="nav-link">Mock Interview</a>
+            </div>
+            <div class="nav-user">
+                <span id="userName">Loading...</span>
+                <button id="logoutBtn" class="btn btn-outline btn-small">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="container">
+            <div class="page-header">
+                <h2>Company Eligibility Checker</h2>
+                <p>Check your eligibility for top Indian companies</p>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer-box info">
+                <p><strong>ℹ️ How it works:</strong> This uses rule-based logic based on official company criteria (CGPA cutoffs, branch eligibility). Results are transparent and based on your profile data.</p>
+            </div>
+
+            <!-- Your Profile Summary -->
+            <section class="profile-summary-box">
+                <h3>Your Profile</h3>
+                <div class="profile-grid">
+                    <div class="profile-item">
+                        <span class="profile-label">CGPA:</span>
+                        <span class="profile-value" id="userCGPA">--</span>
+                    </div>
+                    <div class="profile-item">
+                        <span class="profile-label">Branch:</span>
+                        <span class="profile-value" id="userBranch">--</span>
+                    </div>
+                    <div class="profile-item">
+                        <span class="profile-label">Year:</span>
+                        <span class="profile-value" id="userYear">--</span>
+                    </div>
+                    <div class="profile-item">
+                        <span class="profile-label">College:</span>
+                        <span class="profile-value" id="userCollege">--</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Company Cards -->
+            <section class="companies-section">
+                <h3>Check Eligibility</h3>
+                <div class="company-cards">
+                    <!-- TCS -->
+                    <div class="company-card" data-company="TCS">
+                        <div class="company-header">
+                            <div class="company-logo">🏢</div>
+                            <h4>TCS (Tata Consultancy Services)</h4>
+                        </div>
+                        <div class="company-criteria">
+                            <p><strong>Criteria:</strong></p>
+                            <ul>
+                                <li>CGPA: ≥ 6.0</li>
+                                <li>All branches eligible</li>
+                                <li>No active backlogs</li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-primary check-btn" data-company="TCS">
+                            Check Eligibility
+                        </button>
+                        <div class="eligibility-result" style="display: none;"></div>
+                    </div>
+
+                    <!-- Infosys -->
+                    <div class="company-card" data-company="Infosys">
+                        <div class="company-header">
+                            <div class="company-logo">🏢</div>
+                            <h4>Infosys</h4>
+                        </div>
+                        <div class="company-criteria">
+                            <p><strong>Criteria:</strong></p>
+                            <ul>
+                                <li>CGPA: ≥ 6.5</li>
+                                <li>All branches eligible</li>
+                                <li>No active backlogs</li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-primary check-btn" data-company="Infosys">
+                            Check Eligibility
+                        </button>
+                        <div class="eligibility-result" style="display: none;"></div>
+                    </div>
+
+                    <!-- Accenture -->
+                    <div class="company-card" data-company="Accenture">
+                        <div class="company-header">
+                            <div class="company-logo">🏢</div>
+                            <h4>Accenture</h4>
+                        </div>
+                        <div class="company-criteria">
+                            <p><strong>Criteria:</strong></p>
+                            <ul>
+                                <li>CGPA: ≥ 6.5</li>
+                                <li>All branches eligible</li>
+                                <li>Good communication skills</li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-primary check-btn" data-company="Accenture">
+                            Check Eligibility
+                        </button>
+                        <div class="eligibility-result" style="display: none;"></div>
+                    </div>
+
+                    <!-- Amazon -->
+                    <div class="company-card" data-company="Amazon">
+                        <div class="company-header">
+                            <div class="company-logo">🏢</div>
+                            <h4>Amazon</h4>
+                        </div>
+                        <div class="company-criteria">
+                            <p><strong>Criteria:</strong></p>
+                            <ul>
+                                <li>CGPA: ≥ 7.0</li>
+                                <li>Preferred: CS, IT, ECE</li>
+                                <li>Strong DSA skills required</li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-primary check-btn" data-company="Amazon">
+                            Check Eligibility
+                        </button>
+                        <div class="eligibility-result" style="display: none;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Check History -->
+            <section class="check-history">
+                <h3>Your Eligibility Check History</h3>
+                <div id="historyList" class="history-list">
+                    <div class="empty-state">
+                        <p>No checks performed yet</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Important Note -->
+            <div class="disclaimer-box warning">
+                <p><strong>⚠️ Important Note:</strong> These are general eligibility criteria. Actual company requirements may vary by year, role, and campus. Always verify with your placement cell for accurate information.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="js/eligibility.js"></script>
+</body>
+</html>

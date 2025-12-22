@@ -1,0 +1,29 @@
+{
+  "name": "placementiq",
+  "version": "1.0.0",
+  "description": "AI-Powered Placement Intelligence Platform for Indian Students",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy:vercel": "vercel --prod",
+    "deploy:netlify": "netlify deploy --prod"
+  },
+  "keywords": [
+    "placement",
+    "college",
+    "india",
+    "ai",
+    "resume",
+    "interview"
+  ],
+  "author": "PlacementIQ Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

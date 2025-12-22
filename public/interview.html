@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Interview - PlacementIQ</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="dashboard-nav">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>PlacementIQ</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <a href="resume.html" class="nav-link">Resume Analysis</a>
+                <a href="eligibility.html" class="nav-link">Eligibility Checker</a>
+                <a href="interview.html" class="nav-link active">Mock Interview</a>
+            </div>
+            <div class="nav-user">
+                <span id="userName">Loading...</span>
+                <button id="logoutBtn" class="btn btn-outline btn-small">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="container">
+            <div class="page-header">
+                <h2>AI Mock HR Interview</h2>
+                <p>Practice common HR questions with AI feedback</p>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer-box info">
+                <p><strong>ℹ️ About this feature:</strong> This is a text-based mock interview. The AI will ask you HR questions, analyze your responses, and provide feedback on communication and confidence. Limited to 3 sessions per day (free tier).</p>
+            </div>
+
+            <!-- Interview Area -->
+            <section id="interviewSection" class="interview-section">
+                <!-- Start Screen -->
+                <div id="startScreen" class="start-screen">
+                    <div class="start-card">
+                        <h3>Ready to Practice?</h3>
+                        <p>The AI interviewer will ask you common HR questions. Answer naturally and honestly. You'll receive feedback after the session.</p>
+                        
+                        <div class="interview-tips">
+                            <h4>Tips for a Good Session:</h4>
+                            <ul>
+                                <li>Answer in 2-3 sentences minimum</li>
+                                <li>Be specific and use examples</li>
+                                <li>Stay professional but natural</li>
+                                <li>Take your time to think before responding</li>
+                            </ul>
+                        </div>
+
+                        <div class="session-limit">
+                            <p><strong>Sessions today:</strong> <span id="sessionCount">0</span> / 3</p>
+                        </div>
+
+                        <button id="startInterviewBtn" class="btn btn-primary btn-large">
+                            Start Interview
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chat Interface -->
+                <div id="chatScreen" class="chat-screen" style="display: none;">
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Messages will be added here dynamically -->
+                        </div>
+
+                        <div class="chat-input-area">
+                            <textarea 
+                                id="answerInput" 
+                                placeholder="Type your answer here..."
+                                rows="3"
+                            ></textarea>
+                            <div class="chat-actions">
+                                <button id="sendAnswerBtn" class="btn btn-primary">Send Answer</button>
+                                <button id="endInterviewBtn" class="btn btn-outline">End Interview</button>
+                            </div>
+                        </div>
+
+                        <div class="chat-status" id="chatStatus">
+                            <span class="status-indicator"></span>
+                            <span id="statusText">AI is typing...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Screen -->
+                <div id="resultsScreen" class="results-screen" style="display: none;">
+                    <div class="results-card">
+                        <h3>Interview Complete! 🎉</h3>
+                        <p>Here's your performance summary:</p>
+
+                        <!-- Scores -->
+                        <div class="score-grid">
+                            <div class="score-item">
+                                <div class="score-circle">
+                                    <span class="score-value" id="communicationScore">--</span>
+                                </div>
+                                <p class="score-label">Communication</p>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-circle">
+                                    <span class="score-value" id="confidenceScore">--</span>
+                                </div>
+                                <p class="score-label">Confidence</p>
+                            </div>
+                        </div>
+
+                        <!-- Feedback -->
+                        <div class="feedback-section">
+                            <h4>💡 Key Feedback Points</h4>
+                            <ul id="feedbackList"></ul>
+                        </div>
+
+                        <!-- Conversation Summary -->
+                        <div class="conversation-summary">
+                            <h4>📝 Questions Asked</h4>
+                            <div id="questionsSummary"></div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="result-actions">
+                            <button id="newInterviewBtn" class="btn btn-primary">Start New Interview</button>
+                            <button id="viewHistoryBtn" class="btn btn-outline">View History</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Previous Interviews -->
+            <section class="history-section">
+                <h3>Previous Interview Sessions</h3>
+                <div id="historyList" class="history-list">
+                    <div class="empty-state">
+                        <p>No previous interviews yet</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="js/interview.js"></script>
+</body>
+</html>
