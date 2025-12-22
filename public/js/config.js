@@ -1,10 +1,9 @@
 // Supabase Configuration
 // This file contains Supabase client initialization
-// Replace these values with your actual Supabase project credentials
 
-// Get environment variables or use defaults (for development only)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+// Supabase credentials
+const SUPABASE_URL = 'https://xpkpjmnmxwaxopskwwzn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwa3BqbW5teHdheG9wc2t3d3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzOTcyNDUsImV4cCI6MjA4MTk3MzI0NX0.O-bzDC6O14fPGoVQuj35lCMy8CRyXOwa4pnK72bM7sk';
 
 // Check if Supabase is loaded
 if (typeof window.supabase === 'undefined') {
