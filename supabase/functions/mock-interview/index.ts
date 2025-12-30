@@ -97,21 +97,35 @@ Return ONLY the question text, no additional formatting or explanations.`
 
 ${conversationText}
 
-Provide feedback in JSON format:
+Provide detailed feedback in JSON format:
 {
   "communicationScore": <number 0-100>,
   "confidenceScore": <number 0-100>,
-  "feedback": [<array of 4-5 specific feedback points>]
+  "feedback": [<array of 4-5 specific feedback points>],
+  "questionAnalysis": [
+    {
+      "question": "<the question asked>",
+      "yourAnswer": "<summary of candidate's answer>",
+      "idealAnswer": "<what a strong answer should include>",
+      "keyTips": [<array of 3-4 specific tips for this question>],
+      "improvementAreas": "<what could be improved>"
+    }
+  ]
 }
+
+For EACH question asked, provide:
+1. Ideal Answer: What should a good answer include? What are the key points to mention?
+2. Key Tips: Specific actionable advice (use STAR method, mention specific skills, quantify achievements, etc.)
+3. Improvement Areas: What was missing or could be better in the candidate's answer?
 
 Evaluate based on:
 1. Answer completeness and relevance
 2. Communication clarity
-3. Use of examples
+3. Use of examples (STAR method)
 4. Professional tone
-5. Structure (STAR method usage)
+5. Specific accomplishments mentioned
 
-Be encouraging but provide constructive feedback. Focus on improvement areas.
+Be encouraging but provide constructive, actionable feedback with concrete examples of how to improve.
 
 Return ONLY valid JSON.`
 
@@ -162,7 +176,8 @@ Return ONLY valid JSON.`
             'Work on structuring answers using STAR method',
             'Practice speaking more confidently',
             'Consider adding quantifiable achievements'
-          ]
+          ],
+          questionAnalysis: []
         }
       }
 

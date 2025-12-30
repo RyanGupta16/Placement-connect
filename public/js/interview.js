@@ -239,7 +239,8 @@ async function sendAnswer() {
 async function endInterview() {
     try {
         // Calculate scores
-        const { communicationScore, confidenceScore, feedback } = await analyzeInterview();
+        const analysisResult = await analyzeInterview();
+        const { communicationScore, confidenceScore, feedback, questionAnalysis } = analysisResult;
         
         // Update session in database
         const { error } = await supabase
@@ -260,8 +261,8 @@ async function endInterview() {
         document.getElementById('chatScreen').style.display = 'none';
         document.getElementById('resultsScreen').style.display = 'block';
         
-        // Display results
-        displayResults(communicationScore, confidenceScore, feedback);
+        // Display results with question analysis
+        displayResults(communicationScore, confidenceScore, feedback, questionAnalysis);
         
         // Reload history
         await loadHistory();
@@ -330,19 +331,53 @@ function generateMockAnalysis() {
     return { communicationScore, confidenceScore, feedback };
 }
 
-function displayResults(communicationScore, confidenceScore, feedback) {
+function displayResults(communicationScore, confidenceScore, feedback, questionAnalysis = []) {
     document.getElementById('communicationScore').textContent = communicationScore;
     document.getElementById('confidenceScore').textContent = confidenceScore;
     
     const feedbackList = document.getElementById('feedbackList');
     feedbackList.innerHTML = feedback.map(f => `<li>${f}</li>`).join('');
     
-    // Questions summary
+    // Questions summary with detailed analysis
     const questionsSummary = document.getElementById('questionsSummary');
-    const questions = conversation.filter(m => m.role === 'ai');
-    questionsSummary.innerHTML = questions.map((q, i) => `
-        <p><strong>Q${i+1}:</strong> ${q.content}</p>
-    `).join('');
+    
+    if (questionAnalysis && questionAnalysis.length > 0) {
+        // Show detailed analysis for each question
+        questionsSummary.innerHTML = questionAnalysis.map((qa, i) => `
+            <div style="margin-bottom: 2rem; padding: 1.5rem; background: var(--gray-50); border-radius: 12px; border-left: 4px solid var(--primary);">
+                <h4 style="margin-bottom: 1rem; color: var(--primary);">Question ${i+1}</h4>
+                <p style="margin-bottom: 1rem;"><strong>Q:</strong> ${qa.question}</p>
+                
+                <div style="margin-bottom: 1rem;">
+                    <strong style="color: var(--success);">✓ Your Answer Summary:</strong>
+                    <p style="margin-top: 0.5rem; color: var(--gray-700);">${qa.yourAnswer}</p>
+                </div>
+                
+                <div style="margin-bottom: 1rem; padding: 1rem; background: white; border-radius: 8px;">
+                    <strong style="color: var(--primary);">💡 Ideal Answer Should Include:</strong>
+                    <p style="margin-top: 0.5rem;">${qa.idealAnswer}</p>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <strong style="color: var(--primary);">📌 Key Tips:</strong>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        ${qa.keyTips.map(tip => `<li style="margin-bottom: 0.5rem;">${tip}</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div style="padding: 1rem; background: #FFF3CD; border-radius: 8px;">
+                    <strong style="color: #856404;">⚠️ Areas to Improve:</strong>
+                    <p style="margin-top: 0.5rem; color: #856404;">${qa.improvementAreas}</p>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        // Fallback: Show basic questions list
+        const questions = conversation.filter(m => m.role === 'ai');
+        questionsSummary.innerHTML = questions.map((q, i) => `
+            <p><strong>Q${i+1}:</strong> ${q.content}</p>
+        `).join('');
+    }
 }
 
 async function updateSession() {
