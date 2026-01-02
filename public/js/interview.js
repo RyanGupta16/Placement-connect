@@ -7,7 +7,9 @@ let currentProfile = null;
 let currentSessionId = null;
 let conversation = [];
 let questionCount = 0;
-const MAX_QUESTIONS = 5;
+const MAX_GENERAL_QUESTIONS = 5;
+const MAX_SPECIALIZED_QUESTIONS = 4;
+const MAX_QUESTIONS = MAX_GENERAL_QUESTIONS + MAX_SPECIALIZED_QUESTIONS; // 9 total
 const MAX_SESSIONS_PER_DAY = 3;
 
 // Mock interview questions (fallback)
@@ -148,6 +150,9 @@ async function askQuestion() {
     try {
         let question = '';
         
+        // Determine if we're in specialized question phase
+        const isSpecializedPhase = questionCount >= MAX_GENERAL_QUESTIONS;
+        
         // Try to get question from Edge Function (Gemini)
         const { data: session } = await supabase.auth.getSession();
         
@@ -161,7 +166,13 @@ async function askQuestion() {
                 body: JSON.stringify({
                     action: 'get_question',
                     conversation: conversation,
-                    question_number: questionCount + 1
+                    question_number: questionCount + 1,
+                    is_specialized: isSpecializedPhase,
+                    user_profile: {
+                        branch: currentProfile.branch,
+                        skills: currentProfile.skills || [],
+                        college: currentProfile.college
+                    }
                 })
             });
             

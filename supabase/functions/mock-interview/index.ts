@@ -15,10 +15,18 @@ interface ConversationMessage {
   timestamp?: string;
 }
 
+interface UserProfile {
+  branch: string;
+  skills: string[];
+  college: string;
+}
+
 interface RequestBody {
   action: string;
   conversation: ConversationMessage[];
   question_number?: number;
+  is_specialized?: boolean;
+  user_profile?: UserProfile;
 }
 
 serve(async (req: Request) => {
@@ -36,13 +44,45 @@ serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { action, conversation, question_number } = await req.json() as RequestBody
+    const { action, conversation, question_number, is_specialized, user_profile } = await req.json() as RequestBody
 
     if (action === 'get_question') {
-      // Generate interview question
-      const prompt = `You are conducting a professional HR interview for an Indian college student preparing for campus placements.
+      // Generate interview question based on phase
+      let prompt = '';
+      
+      if (is_specialized && user_profile) {
+        // Specialized questions based on user's field and skills
+        const skillsList = user_profile.skills.length > 0 ? user_profile.skills.join(', ') : 'general programming';
+        
+        prompt = `You are conducting a TECHNICAL interview for a ${user_profile.branch} student from ${user_profile.college} preparing for campus placements.
 
-This is question ${question_number} of 5.
+This is SPECIALIZED question ${question_number - 5} of 4 (questions 6-9 are technical).
+
+Student's Skills: ${skillsList}
+
+Previous conversation:
+${conversation.map((m: ConversationMessage) => `${m.role === 'ai' ? 'Interviewer' : 'Candidate'}: ${m.content}`).join('\n')}
+
+Based on their answers and stated skills, generate ONE specific TECHNICAL question about:
+- Their coding skills or techniques mentioned (${skillsList})
+- Problem-solving approach in their field (${user_profile.branch})
+- Technical projects or implementations
+- Algorithms, data structures, or domain-specific knowledge
+- How they apply their skills to real-world problems
+
+The question should:
+- Be SPECIFIC to ${user_profile.branch} and skills: ${skillsList}
+- Test practical knowledge and problem-solving
+- Reference something from their previous answers if possible
+- Be challenging but appropriate for entry-level
+- NOT be too theoretical - focus on application
+
+Return ONLY the question text, no additional formatting or explanations.`;
+      } else {
+        // General HR questions (first 5)
+        prompt = `You are conducting a professional HR interview for an Indian college student preparing for campus placements.
+
+This is question ${question_number} of 5 (general HR questions).
 
 Previous conversation:
 ${conversation.map((m: ConversationMessage) => `${m.role === 'ai' ? 'Interviewer' : 'Candidate'}: ${m.content}`).join('\n')}
@@ -51,10 +91,11 @@ Generate ONE appropriate HR interview question. The question should be:
 - Professional and relevant for entry-level positions
 - Common in Indian campus placements
 - Progressive (start easy, get more specific)
-- NOT technical coding questions
+- NOT technical coding questions (those come later)
 
-Return ONLY the question text, no additional formatting or explanations.`
-
+Return ONLY the question text, no additional formatting or explanations.`;
+      }
+      
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`
       
       const geminiResponse = await fetch(geminiUrl, {
