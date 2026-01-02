@@ -53,45 +53,56 @@ serve(async (req: Request) => {
       if (is_specialized && user_profile) {
         // Specialized questions based on user's field and skills
         const skillsList = user_profile.skills.length > 0 ? user_profile.skills.join(', ') : 'general programming';
+        const questionsAsked = conversation.filter((m: ConversationMessage) => m.role === 'ai').map(m => m.content);
         
         prompt = `You are conducting a TECHNICAL interview for a ${user_profile.branch} student from ${user_profile.college} preparing for campus placements.
 
-This is SPECIALIZED question ${question_number - 5} of 4 (questions 6-9 are technical).
+This is SPECIALIZED TECHNICAL question ${question_number - 5} of 4 (questions 6-9 are technical/specialized).
 
+Student's Branch: ${user_profile.branch}
 Student's Skills: ${skillsList}
+
+IMPORTANT: DO NOT repeat any of these previously asked questions:
+${questionsAsked.map((q, i) => `${i+1}. ${q}`).join('\n')}
 
 Previous conversation:
 ${conversation.map((m: ConversationMessage) => `${m.role === 'ai' ? 'Interviewer' : 'Candidate'}: ${m.content}`).join('\n')}
 
-Based on their answers and stated skills, generate ONE specific TECHNICAL question about:
-- Their coding skills or techniques mentioned (${skillsList})
-- Problem-solving approach in their field (${user_profile.branch})
-- Technical projects or implementations
-- Algorithms, data structures, or domain-specific knowledge
-- How they apply their skills to real-world problems
+Based on their answers, branch, and stated skills, generate ONE NEW specific TECHNICAL question about:
+- Coding skills, algorithms, or data structures (${skillsList})
+- Problem-solving approach specific to ${user_profile.branch}
+- Real-world technical scenarios or implementations
+- Domain-specific knowledge for ${user_profile.branch}
+- How they debug, optimize, or architect solutions
 
-The question should:
-- Be SPECIFIC to ${user_profile.branch} and skills: ${skillsList}
-- Test practical knowledge and problem-solving
-- Reference something from their previous answers if possible
-- Be challenging but appropriate for entry-level
-- NOT be too theoretical - focus on application
+The question MUST:
+- Be COMPLETELY DIFFERENT from all previous questions
+- Be SPECIFIC to ${user_profile.branch} and their skills: ${skillsList}
+- Test practical problem-solving (not just theory)
+- Be appropriate for entry-level but challenging
+- Reference their previous technical answers if possible
 
 Return ONLY the question text, no additional formatting or explanations.`;
       } else {
         // General HR questions (first 5)
+        const questionsAsked = conversation.filter((m: ConversationMessage) => m.role === 'ai').map(m => m.content);
+        
         prompt = `You are conducting a professional HR interview for an Indian college student preparing for campus placements.
 
 This is question ${question_number} of 5 (general HR questions).
 
+IMPORTANT: DO NOT repeat any of these previously asked questions:
+${questionsAsked.map((q, i) => `${i+1}. ${q}`).join('\n')}
+
 Previous conversation:
 ${conversation.map((m: ConversationMessage) => `${m.role === 'ai' ? 'Interviewer' : 'Candidate'}: ${m.content}`).join('\n')}
 
-Generate ONE appropriate HR interview question. The question should be:
+Generate ONE NEW appropriate HR interview question. The question should be:
+- COMPLETELY DIFFERENT from all previous questions
 - Professional and relevant for entry-level positions
 - Common in Indian campus placements
-- Progressive (start easy, get more specific)
-- NOT technical coding questions (those come later)
+- Progressive (start easy, get more specific based on their answers)
+- NOT technical coding questions (those come in questions 6-9)
 
 Return ONLY the question text, no additional formatting or explanations.`;
       }
