@@ -1,0 +1,7 @@
+{
+  "user_id": "test-user-123",
+  "resume_id": "test-resume-456",
+  "resume_text": "John Doe\nSoftware Engineer\n\nEXPERIENCE:\n- Developed web applications using React and Node.js\n- Built REST APIs for e-commerce platform\n- Worked with MongoDB and PostgreSQL\n\nEDUCATION:\nB.Tech in Computer Science\nXYZ University, 2020-2024\nCGPA: 8.5/10\n\nSKILLS:\nJavaScript, React, Node.js, MongoDB, Git\n\nPROJECTS:\n1. E-commerce Website - Built using MERN stack\n2. Task Manager App - React Native mobile app",
+  "job_description": "We are looking for a Full Stack Developer with experience in React, Node.js, and MongoDB. Must have strong problem-solving skills and ability to work in agile teams. Experience with AWS and Docker is a plus.",
+  "file_name": "john_doe_resume.pdf"
+}

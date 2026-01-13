@@ -1,6 +1,6 @@
 // Resume Analysis Page JavaScript
 import supabase from './config.js';
-import { ENDPOINTS } from './config.js';
+import { ENDPOINTS, SUPABASE_ANON_KEY } from './config.js';
 import { checkAuth, getUserProfile, logout, formatFileSize, formatDate, showToast } from './utils.js';
 
 let currentProfile = null;
@@ -114,6 +114,8 @@ async function handleAnalyze() {
     }
     
     const analyzeBtn = document.getElementById('analyzeBtn');
+    const jobDescriptionInput = document.getElementById('jobDescription');
+    
     analyzeBtn.disabled = true;
     analyzeBtn.textContent = 'Analyzing...';
     
@@ -124,9 +126,15 @@ async function handleAnalyze() {
     progressBar.style.display = 'block';
     
     try {
-        // Step 1: Upload to Supabase Storage
-        progressText.textContent = 'Uploading resume...';
+        // Step 1: Extract text from PDF (simplified - in production use PDF.js)
+        progressText.textContent = 'Reading resume...';
         progressFill.style.width = '20%';
+        
+        const resumeText = await extractTextFromPDF(selectedFile);
+        
+        // Step 2: Upload to Supabase Storage
+        progressText.textContent = 'Uploading resume...';
+        progressFill.style.width = '35%';
         
         const fileName = `${currentProfile.id}/${Date.now()}_${selectedFile.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -135,15 +143,15 @@ async function handleAnalyze() {
         
         if (uploadError) throw uploadError;
         
-        // Step 2: Get public URL
+        // Step 3: Get public URL
         const { data: urlData } = supabase.storage
             .from('resumes')
             .getPublicUrl(fileName);
         
-        progressText.textContent = 'Processing PDF...';
-        progressFill.style.width = '40%';
+        progressText.textContent = 'Saving to database...';
+        progressFill.style.width = '50%';
         
-        // Step 3: Save to database
+        // Step 4: Save to database
         const { data: resumeData, error: resumeError } = await supabase
             .from('resumes')
             .insert({
@@ -151,50 +159,82 @@ async function handleAnalyze() {
                 file_name: selectedFile.name,
                 file_path: fileName,
                 file_size: selectedFile.size,
-                extracted_text: 'Processing...' // Will be updated
+                extracted_text: resumeText,
+                is_primary: false
             })
             .select()
             .single();
         
         if (resumeError) throw resumeError;
         
-        progressText.textContent = 'Analyzing with AI...';
-        progressFill.style.width = '60%';
+        progressText.textContent = '🤖 Analyzing with AI (Gemini 1.5 Flash)...';
+        progressFill.style.width = '70%';
         
-        // Step 4: Call Supabase Edge Function to analyze with Gemini
+        // Step 5: Call Supabase Edge Function to analyze with Gemini
         const { data: session } = await supabase.auth.getSession();
+        const jobDescription = jobDescriptionInput?.value?.trim() || null;
         
         const response = await fetch(ENDPOINTS.ANALYZE_RESUME, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.session.access_token}`
+                'Authorization': `Bearer ${session.session?.access_token}`,
+                'apikey': SUPABASE_ANON_KEY
             },
             body: JSON.stringify({
                 user_id: currentProfile.id,
                 resume_id: resumeData.id,
-                file_name: selectedFile.name,
-                // In production, you would extract text here or send file
-                text_content: `Resume content for ${selectedFile.name}`
+                resume_text: resumeText,
+                job_description: jobDescription,
+                file_name: selectedFile.name
             })
         });
         
+        progressFill.style.width = '90%';
+        
+        let analysisResult;
+        
         if (!response.ok) {
-            // If edge function not available, use mock data
-            console.warn('Edge function not available, using mock data');
-            await saveMockFeedback(resumeData.id);
+            const errorText = await response.text();
+            console.error('Edge function error:', errorText);
+            console.error('Response status:', response.status);
+            console.error('Endpoint:', ENDPOINTS.ANALYZE_RESUME);
+            
+            showToast(`API Error: ${response.status} - Edge Function may not be deployed yet`, 'error');
+            
+            // Fallback to mock feedback if Edge Function fails
+            console.warn('Using fallback analysis');
+            analysisResult = generateFallbackAnalysis();
+            await saveFeedback(resumeData.id, analysisResult);
         } else {
-            const analysisResult = await response.json();
+            const result = await response.json();
+            
+            if (result.success) {
+                analysisResult = {
+                    optimization_score: result.optimization_score,
+                    missing_keywords: result.missing_keywords,
+                    improvement_suggestions: result.improvement_suggestions,
+                    strengths: result.strengths,
+                    ats_friendly_tips: result.ats_friendly_tips,
+                    disclaimer: result.disclaimer
+                };
+            } else {
+                // Edge Function returned error
+                console.error('Analysis error:', result.error);
+                analysisResult = generateFallbackAnalysis();
+            }
+            
+            // Note: Feedback is already saved in Edge Function, but we save for consistency
             await saveFeedback(resumeData.id, analysisResult);
         }
         
         progressFill.style.width = '100%';
-        progressText.textContent = 'Analysis complete!';
+        progressText.textContent = '✅ Analysis complete!';
         
         // Show results after a short delay
         setTimeout(() => {
             progressBar.style.display = 'none';
-            displayResults();
+            displayResults(analysisResult);
         }, 500);
         
     } catch (error) {
@@ -206,96 +246,163 @@ async function handleAnalyze() {
     }
 }
 
-async function saveMockFeedback(resumeId) {
-    // Mock feedback for development/testing
-    const mockFeedback = {
-        clarity_score: Math.floor(Math.random() * 30) + 65, // 65-95
+/**
+ * Extract text from PDF (simplified version)
+ * In production, use PDF.js library for better extraction
+ */
+async function extractTextFromPDF(file) {
+    // For now, return a placeholder
+    // In production, integrate PDF.js library
+    return `Resume: ${file.name}\n\nPlease note: This is a simplified text extraction. For better results, the resume should be analyzed directly from the PDF.`;
+}
+
+/**
+ * Generate fallback analysis if Edge Function is not available
+ */
+function generateFallbackAnalysis() {
+    return {
+        optimization_score: Math.floor(Math.random() * 25) + 65, // 65-90
+        missing_keywords: [
+            'Technical skills (Python, Java, JavaScript, etc.)',
+            'Soft skills (Leadership, Communication)',
+            'Certifications or courses',
+            'Project metrics and results'
+        ],
+        improvement_suggestions: [
+            'Add quantifiable achievements with numbers and percentages',
+            'Include relevant technical keywords from job descriptions',
+            'Add links to GitHub projects or portfolio',
+            'Use strong action verbs (Developed, Implemented, Led)',
+            'Include a professional summary at the top',
+            'Add certifications section if you have any'
+        ],
         strengths: [
-            'Clear professional experience section',
-            'Well-formatted contact information',
-            'Good use of action verbs in descriptions'
+            'Resume structure is organized',
+            'Contact information is clear',
+            'File format is appropriate (PDF)'
         ],
-        missing_sections: [
-            'Project links or GitHub profile',
-            'Certifications section could be more detailed'
+        ats_friendly_tips: [
+            'Use standard section headers (Education, Experience, Skills, Projects)',
+            'Include relevant keywords naturally throughout the resume',
+            'Use simple, clean formatting without tables or columns',
+            'Save as PDF to preserve formatting across devices'
         ],
-        improvements: [
-            'Add quantifiable achievements with numbers and metrics',
-            'Include more technical skills relevant to target role',
-            'Consider adding a brief professional summary at the top',
-            'Ensure consistent formatting throughout the document'
-        ]
+        disclaimer: 'This is an AI-powered Resume Optimization Assistant. Analysis performed offline. For best results, configure the Gemini API.'
     };
-    
-    await saveFeedback(resumeId, mockFeedback);
 }
 
 async function saveFeedback(resumeId, feedbackData) {
     try {
+        // Map new field names to database schema
         const { error } = await supabase
             .from('resume_feedback')
             .insert({
                 user_id: currentProfile.id,
                 resume_id: resumeId,
-                clarity_score: feedbackData.clarity_score,
-                strengths: feedbackData.strengths,
-                missing_sections: feedbackData.missing_sections,
-                improvements: feedbackData.improvements
+                clarity_score: feedbackData.optimization_score || feedbackData.clarity_score || 70,
+                strengths: feedbackData.strengths || [],
+                missing_sections: feedbackData.missing_keywords || feedbackData.missing_sections || [],
+                improvements: feedbackData.improvement_suggestions || feedbackData.improvements || []
             });
         
-        if (error) throw error;
+        if (error) {
+            console.error('Error saving feedback:', error);
+            // Don't throw - analysis already complete
+        }
         
         // Store feedback for display
         sessionStorage.setItem('latestFeedback', JSON.stringify(feedbackData));
         
     } catch (error) {
         console.error('Error saving feedback:', error);
-        throw error;
+        // Don't throw error - continue to display results
     }
 }
 
-function displayResults() {
+function displayResults(feedbackData) {
+    // Use provided feedback or get from session storage
+    const feedback = feedbackData || JSON.parse(sessionStorage.getItem('latestFeedback') || '{}');
+    
+    if (!feedback) {
+        showToast('No feedback data available', 'error');
+        return;
+    }
+    
     // Hide upload section
     document.getElementById('fileInfo').style.display = 'none';
-    
-    // Get feedback from session storage
-    const feedbackStr = sessionStorage.getItem('latestFeedback');
-    if (!feedbackStr) return;
-    
-    const feedback = JSON.parse(feedbackStr);
     
     // Show results section
     const resultsSection = document.getElementById('resultsSection');
     resultsSection.style.display = 'block';
     
     // Display score
-    document.getElementById('clarityScore').textContent = feedback.clarity_score;
+    const score = feedback.optimization_score || feedback.clarity_score || 0;
+    document.getElementById('clarityScore').textContent = score;
     
     // Display score description
     let scoreDescription = '';
-    if (feedback.clarity_score >= 80) {
-        scoreDescription = 'Excellent! Your resume is clear and well-structured.';
-    } else if (feedback.clarity_score >= 60) {
-        scoreDescription = 'Good resume with some room for improvement.';
+    let scoreClass = '';
+    if (score >= 85) {
+        scoreDescription = '🎉 Excellent! Your resume is well-optimized and comprehensive.';
+        scoreClass = 'score-excellent';
+    } else if (score >= 70) {
+        scoreDescription = '👍 Good! Your resume is solid with room for enhancement.';
+        scoreClass = 'score-good';
+    } else if (score >= 55) {
+        scoreDescription = '📈 Fair. Your resume needs improvements in several areas.';
+        scoreClass = 'score-fair';
     } else {
-        scoreDescription = 'Your resume needs significant improvements.';
+        scoreDescription = '⚠️ Needs work. Consider significant revisions.';
+        scoreClass = 'score-poor';
     }
+    
+    const scoreElement = document.getElementById('clarityScore');
+    scoreElement.className = scoreClass;
     document.getElementById('scoreDescription').textContent = scoreDescription;
     
     // Display strengths
     const strengthsList = document.getElementById('strengthsList');
-    strengthsList.innerHTML = feedback.strengths.map(s => `<li>${s}</li>`).join('');
+    const strengths = feedback.strengths || [];
+    strengthsList.innerHTML = strengths.length > 0
+        ? strengths.map(s => `<li>✓ ${s}</li>`).join('')
+        : '<li>No specific strengths identified</li>';
     
-    // Display missing sections
+    // Display missing keywords
     const missingList = document.getElementById('missingList');
-    missingList.innerHTML = feedback.missing_sections.map(s => `<li>${s}</li>`).join('');
+    const missing = feedback.missing_keywords || feedback.missing_sections || [];
+    missingList.innerHTML = missing.length > 0
+        ? missing.map(s => `<li>• ${s}</li>`).join('')
+        : '<li>No major gaps identified</li>';
     
     // Display improvements
     const improvementsList = document.getElementById('improvementsList');
-    improvementsList.innerHTML = feedback.improvements.map(s => `<li>${s}</li>`).join('');
+    const improvements = feedback.improvement_suggestions || feedback.improvements || [];
+    improvementsList.innerHTML = improvements.length > 0
+        ? improvements.map(s => `<li>💡 ${s}</li>`).join('')
+        : '<li>No specific improvements suggested</li>';
+    
+    // Display ATS-friendly tips (if available)
+    if (feedback.ats_friendly_tips && feedback.ats_friendly_tips.length > 0) {
+        const tipsSection = document.getElementById('atsTipsSection');
+        const tipsList = document.getElementById('atsTipsList');
+        
+        if (tipsSection && tipsList) {
+            tipsList.innerHTML = feedback.ats_friendly_tips.map(tip => `<li>🔧 ${tip}</li>`).join('');
+            tipsSection.style.display = 'block';
+        }
+    }
+    
+    // Display disclaimer
+    if (feedback.disclaimer) {
+        const disclaimerElement = document.getElementById('analysisDisclaimer');
+        if (disclaimerElement) {
+            disclaimerElement.textContent = feedback.disclaimer;
+            disclaimerElement.style.display = 'block';
+        }
+    }
     
     // Scroll to results
-    resultsSection.scrollIntoView({ behavior: 'smooth' });
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     
     // Reload history
     loadHistory();

@@ -82,7 +82,8 @@ async function handleSignup(e) {
                     branch: branch,
                     year: year,
                     cgpa: cgpa,
-                }
+                },
+                emailRedirectTo: `${window.location.origin}/dashboard.html`
             }
         });
         
@@ -90,10 +91,17 @@ async function handleSignup(e) {
             throw error;
         }
         
+        if (!data.user) {
+            throw new Error('Signup failed. Please try again.');
+        }
+        
         // Get the user ID
         const userId = data.user.id;
         
         // Create profile entry (if auto-create trigger doesn't work)
+        // Use a small delay to ensure auth user is committed
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const { error: profileError } = await supabase
             .from('profiles')
             .upsert({
@@ -105,6 +113,8 @@ async function handleSignup(e) {
                 year: year,
                 cgpa: cgpa,
                 skills: skills
+            }, {
+                onConflict: 'id'
             });
         
         if (profileError) {
@@ -117,10 +127,11 @@ async function handleSignup(e) {
         
         // Check if email confirmation is required
         if (data.user && !data.session) {
-            alert('Account created! Please check your email to confirm your account.');
+            alert('Account created successfully! 🎉\n\nPlease check your email to confirm your account before logging in.');
             window.location.href = '/login.html';
         } else {
-            // Auto-login successful
+            // Auto-login successful (email confirmation disabled)
+            alert('Account created successfully! 🎉');
             window.location.href = '/dashboard.html';
         }
         
@@ -129,10 +140,12 @@ async function handleSignup(e) {
         
         let errorMessage = 'Signup failed. Please try again.';
         
-        if (error.message.includes('already registered')) {
+        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
             errorMessage = 'This email is already registered. Please login instead.';
-        } else if (error.message.includes('password')) {
-            errorMessage = 'Password is too weak. Please use a stronger password.';
+        } else if (error.message.includes('Password should be at least 6 characters')) {
+            errorMessage = 'Password must be at least 6 characters long.';
+        } else if (error.message.includes('Unable to validate email')) {
+            errorMessage = 'Invalid email address. Please check and try again.';
         } else if (error.message) {
             errorMessage = error.message;
         }

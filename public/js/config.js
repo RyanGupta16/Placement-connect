@@ -5,6 +5,9 @@
 const SUPABASE_URL = 'https://xpkpjmnmxwaxopskwwzn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwa3BqbW5teHdheG9wc2t3d3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzOTcyNDUsImV4cCI6MjA4MTk3MzI0NX0.O-bzDC6O14fPGoVQuj35lCMy8CRyXOwa4pnK72bM7sk';
 
+// Export for use in other modules
+export { SUPABASE_URL, SUPABASE_ANON_KEY };
+
 // Check if Supabase is loaded
 if (typeof window.supabase === 'undefined') {
     console.error('Supabase client library not loaded. Please include it in your HTML.');

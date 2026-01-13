@@ -1,0 +1,509 @@
+import { supabase } from './supabase';
+
+// Authentication management
+export const auth = {
+  getToken: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  },
+  
+  setToken: (token) => {
+    // Supabase manages tokens automatically
+    localStorage.setItem('token', token);
+  },
+  
+  removeToken: async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('token');
+  },
+  
+  isAuthenticated: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return !!session;
+  },
+  
+  getUser: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+    
+    // Check if user has profile data
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+    
+    return {
+      id: session.user.id,
+      email: session.user.email,
+      role: profile?.role || session.user.user_metadata?.role || 'student',
+      name: profile?.name || session.user.user_metadata?.name || session.user.email.split('@')[0],
+      ...profile
+    };
+  }
+};
+
+// Authentication API
+export const authAPI = {
+  login: async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) throw error;
+    
+    const token = data.session.access_token;
+    auth.setToken(token);
+    
+    return {
+      token,
+      user: data.user
+    };
+  },
+  
+  register: async (userData) => {
+    const { email, password, name, ...rest } = userData;
+    
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          role: 'student',
+          ...rest
+        }
+      }
+    });
+    
+    if (error) throw error;
+    
+    // Create profile
+    if (data.user) {
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        email,
+        name,
+        role: 'student',
+        ...rest
+      });
+    }
+    
+    const token = data.session?.access_token;
+    if (token) auth.setToken(token);
+    
+    return {
+      token,
+      user: data.user
+    };
+  },
+  
+  logout: async () => {
+    await auth.removeToken();
+  }
+};
+
+// Companies API
+export const companiesAPI = {
+  getAll: async (filters = {}) => {
+    let query = supabase.from('companies').select('*');
+    
+    if (filters.search) {
+      query = query.ilike('name', `%${filters.search}%`);
+    }
+    if (filters.industry) {
+      query = query.eq('industry', filters.industry);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+  
+  getById: async (id) => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  getJobRoles: async (companyId) => {
+    const { data, error} = await supabase
+      .from('job_roles')
+      .select('*')
+      .eq('company_id', companyId);
+    
+    if (error) throw error;
+    return data || [];
+  }
+};
+
+// Jobs API
+export const jobsAPI = {
+  getAll: async (filters = {}) => {
+    let query = supabase
+      .from('job_roles')
+      .select('*, companies(name, location)');
+    
+    if (filters.company) {
+      query = query.eq('company_id', filters.company);
+    }
+    if (filters.type) {
+      query = query.eq('type', filters.type);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    
+    // Flatten the company data
+    return (data || []).map(job => ({
+      ...job,
+      company_name: job.companies?.name,
+      company_location: job.companies?.location
+    }));
+  },
+  
+  getById: async (id) => {
+    const { data, error } = await supabase
+      .from('job_roles')
+      .select('*, companies(*)')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return {
+      ...data,
+      company_name: data.companies?.name
+    };
+  },
+  
+  apply: async (jobId, applicationData) => {
+    const user = await auth.getUser();
+    
+    const { data, error } = await supabase
+      .from('applications')
+      .insert({
+        job_id: jobId,
+        student_id: user.id,
+        status: 'pending',
+        ...applicationData
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return { success: true, application: data };
+  }
+};
+
+// Applications API
+export const applicationsAPI = {
+  getMyApplications: async () => {
+    const user = await auth.getUser();
+    
+    const { data, error } = await supabase
+      .from('applications')
+      .select(`
+        *,
+        job_roles(title, salary, location),
+        companies(name)
+      `)
+      .eq('student_id', user.id)
+      .order('applied_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return (data || []).map(app => ({
+      ...app,
+      role_title: app.job_roles?.title,
+      company_name: app.companies?.name
+    }));
+  },
+  
+  getById: async (id) => {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('*, job_roles(*), companies(*)')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  withdraw: async (id) => {
+    const { error } = await supabase
+      .from('applications')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    return { success: true };
+  }
+};
+
+// Resume API
+export const resumeAPI = {
+  analyze: async (file) => {
+    const user = await auth.getUser();
+    const token = await auth.getToken();
+    
+    const formData = new FormData();
+    formData.append('resume', file);
+    
+    // Call Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('analyze-resume', {
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    
+    if (error) throw error;
+    
+    // Store resume analysis
+    if (data) {
+      await supabase.from('resume_analyses').insert({
+        user_id: user.id,
+        score: data.score,
+        feedback: data,
+        created_at: new Date().toISOString()
+      });
+    }
+    
+    return data;
+  },
+  
+  getScore: async (resumeId) => {
+    const { data, error } = await supabase
+      .from('resume_analyses')
+      .select('score')
+      .eq('id', resumeId)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+};
+
+// Company Prep API
+export const prepAPI = {
+  getCompanyInfo: async (companyId) => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', companyId)
+      .single();
+    
+    if (error) throw error;
+    
+    // Add additional prep data
+    return {
+      ...data,
+      culture: data.culture || 'Information will be available soon',
+      interview_process: data.interview_process || 'Standard interview process',
+      tips: data.interview_tips || []
+    };
+  },
+  
+  getInterviewQuestions: async (companyId, role) => {
+    const { data, error } = await supabase
+      .from('interview_questions')
+      .select('*')
+      .eq('company_id', companyId);
+    
+    if (error) throw error;
+    return data || [];
+  },
+  
+  getCodingPatterns: async (companyId) => {
+    const { data, error } = await supabase
+      .from('coding_patterns')
+      .select('*')
+      .eq('company_id', companyId);
+    
+    if (error) throw error;
+    return data || [];
+  }
+};
+
+// Admin API
+export const adminAPI = {
+  // Dashboard Stats
+  getStats: async () => {
+    const { count: companiesCount } = await supabase
+      .from('companies')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: applicationsCount } = await supabase
+      .from('applications')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: pendingCount } = await supabase
+      .from('applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    
+    const { count: studentsCount } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'student');
+    
+    return {
+      totalCompanies: companiesCount || 0,
+      totalApplications: applicationsCount || 0,
+      pendingApplications: pendingCount || 0,
+      totalStudents: studentsCount || 0
+    };
+  },
+  
+  getRecentApplications: async (limit = 10) => {
+    const { data, error } = await supabase
+      .from('applications')
+      .select(`
+        *,
+        job_roles(title),
+        companies(name),
+        profiles(name, email)
+      `)
+      .order('applied_at', { ascending: false })
+      .limit(limit);
+    
+    if (error) throw error;
+    
+    return (data || []).map(app => ({
+      ...app,
+      student_name: app.profiles?.name,
+      email: app.profiles?.email,
+      role_title: app.job_roles?.title,
+      company_name: app.companies?.name
+    }));
+  },
+  
+  // Company Management
+  getCompanies: async () => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .order('name');
+    
+    if (error) throw error;
+    return data || [];
+  },
+  
+  getCompanyById: async (id) => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  createCompany: async (companyData) => {
+    const { data, error } = await supabase
+      .from('companies')
+      .insert(companyData)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  updateCompany: async (id, companyData) => {
+    const { data, error } = await supabase
+      .from('companies')
+      .update(companyData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+  
+  deleteCompany: async (id) => {
+    const { error } = await supabase
+      .from('companies')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    return { success: true };
+  },
+  
+  // Applicants Management
+  getApplicants: async (filters = {}) => {
+    let query = supabase
+      .from('applications')
+      .select(`
+        *,
+        job_roles(title, company_id),
+        companies(name),
+        profiles(name, email)
+      `);
+    
+    if (filters.company) {
+      query = query.eq('job_roles.company_id', filters.company);
+    }
+    if (filters.role) {
+      query = query.eq('job_id', filters.role);
+    }
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    
+    const { data, error } = await query.order('applied_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return (data || []).map(app => ({
+      ...app,
+      student_name: app.profiles?.name,
+      email: app.profiles?.email,
+      role_title: app.job_roles?.title,
+      company_name: app.companies?.name
+    }));
+  },
+  
+  getRolesByCompany: async (companyId) => {
+    const { data, error } = await supabase
+      .from('job_roles')
+      .select('*')
+      .eq('company_id', companyId);
+    
+    if (error) throw error;
+    return data || [];
+  },
+  
+  updateApplicationStatus: async (applicationId, status) => {
+    const { data, error } = await supabase
+      .from('applications')
+      .update({ status })
+      .eq('id', applicationId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return { success: true, application: data };
+  },
+  
+  getApplicantDetails: async (applicationId) => {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('*, job_roles(*), companies(*), profiles(*)')
+      .eq('id', applicationId)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+};

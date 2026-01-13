@@ -17,6 +17,59 @@ export async function checkAuth(supabase) {
 }
 
 /**
+ * Check authentication without redirect
+ * Returns session or null
+ */
+export async function getAuthSession(supabase) {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+}
+
+/**
+ * Setup authentication state listener
+ * Calls callback when auth state changes
+ */
+export function onAuthStateChange(supabase, callback) {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        callback(event, session);
+    });
+    
+    return authListener;
+}
+
+/**
+ * Check if email is verified
+ */
+export async function isEmailVerified(supabase) {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.email_confirmed_at !== null;
+}
+
+/**
+ * Send password reset email
+ */
+export async function sendPasswordReset(supabase, email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password.html`,
+    });
+    
+    if (error) throw error;
+    return true;
+}
+
+/**
+ * Update password
+ */
+export async function updatePassword(supabase, newPassword) {
+    const { error } = await supabase.auth.updateUser({
+        password: newPassword
+    });
+    
+    if (error) throw error;
+    return true;
+}
+
+/**
  * Get current user profile from database
  */
 export async function getUserProfile(supabase) {

@@ -72,6 +72,15 @@
                         <p class="stat-label">completion</p>
                     </div>
                 </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-content">
+                        <h3>Applications</h3>
+                        <div class="stat-value" id="applicationsCount">0</div>
+                        <p class="stat-label">job roles applied</p>
+                    </div>
+                </div>
             </section>
 
             <!-- Quick Actions -->
@@ -95,6 +104,40 @@
                         <h4>Start Mock Interview</h4>
                         <p>Practice with AI interviewer</p>
                     </a>
+                </div>
+            </section>
+
+            <!-- My Applications -->
+            <section class="my-applications">
+                <div class="section-header">
+                    <h3>My Applications</h3>
+                    <a href="#jobRolesSection" class="btn btn-primary btn-small">Browse Jobs</a>
+                </div>
+                <div id="applicationsList" class="applications-list">
+                    <div class="empty-state">
+                        <p>No applications yet. Browse available job roles below!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Available Job Roles -->
+            <section class="job-roles-section" id="jobRolesSection">
+                <h3>Available Job Openings</h3>
+                <div class="filters">
+                    <select id="filterCompany" class="filter-select">
+                        <option value="">All Companies</option>
+                    </select>
+                    <select id="filterJobType" class="filter-select">
+                        <option value="">All Types</option>
+                        <option value="Full-Time">Full-Time</option>
+                        <option value="Internship">Internship</option>
+                        <option value="Both">Both</option>
+                    </select>
+                </div>
+                <div id="jobRolesList" class="job-roles-list">
+                    <div class="empty-state">
+                        <p>Loading job roles...</p>
+                    </div>
                 </div>
             </section>
 
