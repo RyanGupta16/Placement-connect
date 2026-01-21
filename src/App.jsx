@@ -7,6 +7,8 @@ import Companies from './components/Companies';
 import MyApplications from './components/MyApplications';
 import ResumeChecker from './components/ResumeChecker';
 import CompanyPrep from './components/CompanyPrep';
+import MockInterview from './components/MockInterview';
+import JobRoles from './components/JobRoles';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './components/AdminDashboard';
@@ -57,9 +59,27 @@ function App() {
           </ProtectedRoute>
         } />
         
-        <Route path="/company-prep" element={
+        <Route path="/company-prep/:companyId" element={
           <ProtectedRoute isAuthenticated={isAuthenticated}>
             <CompanyPrep />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/mock-interview" element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <MockInterview />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/job-roles" element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <JobRoles />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/companies/:companyId/jobs" element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <JobRoles />
           </ProtectedRoute>
         } />
         

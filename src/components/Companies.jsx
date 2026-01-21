@@ -65,7 +65,7 @@ function Companies() {
             <li><Link to="/companies">Companies</Link></li>
             <li><Link to="/my-applications">My Applications</Link></li>
             <li><Link to="/resume-checker">Resume Checker</Link></li>
-            <li><Link to="/company-prep">Company Prep</Link></li>
+            <li><Link to="/mock-interview">Mock Interview</Link></li>
             <li><button onClick={handleLogout} className="logout-btn">Logout</button></li>
           </ul>
         </div>
@@ -158,12 +158,20 @@ function Companies() {
                     </div>
                   </div>
 
-                  <button 
-                    className="btn-primary"
-                    onClick={() => viewCompanyDetails(company.id)}
-                  >
-                    View Openings
-                  </button>
+                  <div className="company-actions">
+                    <button 
+                      className="btn-primary"
+                      onClick={() => viewCompanyDetails(company.id)}
+                    >
+                      View Openings
+                    </button>
+                    <Link 
+                      to={`/company-prep/${company.id}`}
+                      className="btn-secondary"
+                    >
+                      Prep Guide
+                    </Link>
+                  </div>
                 </div>
               ))
             )}

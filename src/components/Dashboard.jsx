@@ -49,7 +49,7 @@ const Dashboard = () => {
             <li><Link to="/companies">Companies</Link></li>
             <li><Link to="/my-applications">My Applications</Link></li>
             <li><Link to="/resume-checker">Resume Checker</Link></li>
-            <li><Link to="/company-prep">Company Prep</Link></li>
+            <li><Link to="/mock-interview">Mock Interview</Link></li>
             <li><button onClick={handleLogout} className="logout-btn">Logout</button></li>
           </ul>
         </div>
@@ -88,8 +88,8 @@ const Dashboard = () => {
             <Link to="/resume-checker" className="action-btn">
               Check Resume
             </Link>
-            <Link to="/company-prep" className="action-btn">
-              Prepare for Interview
+            <Link to="/mock-interview" className="action-btn">
+              Mock Interview Practice
             </Link>
           </div>
         </div>

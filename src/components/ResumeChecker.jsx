@@ -259,7 +259,7 @@ const ResumeChecker = () => {
             <li><Link to="/job-roles">Job Roles</Link></li>
             <li><Link to="/my-applications">My Applications</Link></li>
             <li><Link to="/resume-checker">Resume Checker</Link></li>
-            <li><Link to="/company-prep">Company Prep</Link></li>
+            <li><Link to="/mock-interview">Mock Interview</Link></li>
             <li><button onClick={handleLogout} className="logout-btn">Logout</button></li>
           </ul>
         </div>
