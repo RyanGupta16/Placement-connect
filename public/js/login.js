@@ -2,18 +2,70 @@
 import supabase from './config.js';
 import { showError, setButtonLoading, isValidEmail } from './utils.js';
 
+let isAdminMode = false;
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Check if already logged in
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-        window.location.href = '/dashboard.html';
+        // Check if user is admin and redirect accordingly
+        const isAdmin = await checkIfAdmin(session.user.id);
+        if (isAdmin) {
+            window.location.href = '/admin/dashboard.html';
+        } else {
+            window.location.href = '/dashboard.html';
+        }
         return;
     }
     
     // Handle form submission
     const loginForm = document.getElementById('loginForm');
     loginForm.addEventListener('submit', handleLogin);
+    
+    // Handle admin mode toggle
+    const toggleAdminBtn = document.getElementById('toggleAdminBtn');
+    toggleAdminBtn.addEventListener('click', toggleAdminMode);
 });
+
+// Toggle between student and admin login mode
+function toggleAdminMode() {
+    isAdminMode = !isAdminMode;
+    
+    const title = document.getElementById('loginTitle');
+    const subtitle = document.getElementById('loginSubtitle');
+    const toggleBtn = document.getElementById('toggleAdminBtn');
+    const loginBtn = document.getElementById('loginBtn');
+    
+    if (isAdminMode) {
+        title.textContent = 'Admin Portal';
+        subtitle.textContent = 'Administrative access only';
+        toggleBtn.textContent = '👤 Student Login';
+        loginBtn.textContent = 'Admin Login';
+        document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    } else {
+        title.textContent = 'Welcome Back';
+        subtitle.textContent = 'Login to continue your placement preparation';
+        toggleBtn.textContent = '🔐 Admin Login';
+        loginBtn.textContent = 'Login';
+        document.body.style.background = '';
+    }
+}
+
+// Check if user is admin
+async function checkIfAdmin(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('admin_users')
+            .select('id, role, is_active')
+            .eq('id', userId)
+            .eq('is_active', true)
+            .single();
+        
+        return !!data;
+    } catch (error) {
+        return false;
+    }
+}
 
 async function handleLogin(e) {
     e.preventDefault();
@@ -57,18 +109,47 @@ async function handleLogin(e) {
         // Successful login
         console.log('Login successful:', data);
         
-        // Check if profile exists, if not redirect to complete profile
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
+        // Check if user is admin
+        const isAdmin = await checkIfAdmin(data.user.id);
         
-        if (!profile) {
-            console.warn('Profile not found, user may need to complete setup');
+        // Verify login mode matches user type
+        if (isAdminMode && !isAdmin) {
+            // Trying to login as admin but not an admin user
+            await supabase.auth.signOut();
+            throw new Error('Access Denied: You do not have administrative privileges.');
         }
         
-        window.location.href = '/dashboard.html';
+        if (!isAdminMode && isAdmin) {
+            // Admin trying to login via student portal
+            await supabase.auth.signOut();
+            throw new Error('Please use the Admin Login option.');
+        }
+        
+        // Update last login for admins
+        if (isAdmin) {
+            await supabase
+                .from('admin_users')
+                .update({ last_login: new Date().toISOString() })
+                .eq('id', data.user.id);
+        }
+        
+        // Redirect based on user type
+        if (isAdmin) {
+            window.location.href = '/admin/dashboard.html';
+        } else {
+            // Check if student profile exists
+            const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('id', data.user.id)
+                .single();
+            
+            if (!profile) {
+                console.warn('Profile not found, user may need to complete setup');
+            }
+            
+            window.location.href = '/dashboard.html';
+        }
         
     } catch (error) {
         console.error('Login error:', error);

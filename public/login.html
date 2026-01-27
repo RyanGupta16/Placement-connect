@@ -11,8 +11,8 @@
         <div class="auth-card">
             <div class="auth-header">
                 <h1 class="logo">PlacementIQ</h1>
-                <h2>Welcome Back</h2>
-                <p>Login to continue your placement preparation</p>
+                <h2 id="loginTitle">Welcome Back</h2>
+                <p id="loginSubtitle">Login to continue your placement preparation</p>
             </div>
 
             <form id="loginForm" class="auth-form">
@@ -53,6 +53,12 @@
                     Login
                 </button>
             </form>
+
+            <div id="adminToggle" style="margin-top: 20px; text-align: center;">
+                <button type="button" class="btn-link" id="toggleAdminBtn" style="background: none; border: none; color: #2563eb; cursor: pointer; text-decoration: underline; font-size: 14px;">
+                    🔐 Admin Login
+                </button>
+            </div>
 
             <div class="auth-footer">
                 <p><a href="#" id="forgotPasswordLink">Forgot password?</a></p>
