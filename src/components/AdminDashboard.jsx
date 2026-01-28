@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { adminAPI } from '../services/api';
+import { adminAPI, adminAuthAPI } from '../services/api';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -32,9 +32,9 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+  const handleLogout = async () => {
+    await adminAuthAPI.logout();
+    navigate('/admin/login');
   };
 
   if (loading) {
@@ -49,6 +49,7 @@ const AdminDashboard = () => {
           <ul className="nav-links">
             <li><Link to="/admin">Dashboard</Link></li>
             <li><Link to="/admin/companies">Manage Companies</Link></li>
+            <li><Link to="/admin/job-roles">Manage Job Roles</Link></li>
             <li><Link to="/admin/applicants">View Applicants</Link></li>
             <li><button onClick={handleLogout} className="logout-btn">Logout</button></li>
           </ul>

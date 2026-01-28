@@ -439,6 +439,51 @@ export const adminAPI = {
     if (error) throw error;
     return { success: true };
   },
+
+  // Job Roles Management
+  getJobRolesByCompany: async (companyId) => {
+    const { data, error } = await supabase
+      .from('job_roles')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  createJobRole: async (roleData) => {
+    const { data, error } = await supabase
+      .from('job_roles')
+      .insert(roleData)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  updateJobRole: async (id, roleData) => {
+    const { data, error } = await supabase
+      .from('job_roles')
+      .update(roleData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  deleteJobRole: async (id) => {
+    const { error } = await supabase
+      .from('job_roles')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    return { success: true };
+  },
   
   // Applicants Management
   getApplicants: async (filters = {}) => {
@@ -505,5 +550,100 @@ export const adminAPI = {
     
     if (error) throw error;
     return data;
+  }
+};
+
+// Admin Authentication API
+export const adminAuthAPI = {
+  // Admin login - checks admin_users table after auth
+  login: async (email, password) => {
+    // Step 1: Authenticate with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (authError) {
+      console.error('Admin auth error:', authError);
+      throw authError;
+    }
+    
+    console.log('Auth successful, checking admin_users table for user:', authData.user.id);
+    
+    // Step 2: Verify user is in admin_users table
+    const { data: adminData, error: adminError } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('id', authData.user.id)
+      .eq('is_active', true)
+      .single();
+    
+    console.log('Admin check result:', { adminData, adminError });
+    
+    if (adminError || !adminData) {
+      // User authenticated but not an admin - sign them out
+      await supabase.auth.signOut();
+      throw new Error('Access denied. Admin credentials required. User ID: ' + authData.user.id + ' not found in admin_users table.');
+    }
+    
+    // Step 3: Update last login timestamp
+    await supabase
+      .from('admin_users')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', authData.user.id);
+    
+    const token = authData.session.access_token;
+    auth.setToken(token);
+    
+    // Store admin info in localStorage
+    localStorage.setItem('adminUser', JSON.stringify({
+      id: adminData.id,
+      email: adminData.email,
+      fullName: adminData.full_name,
+      role: adminData.role
+    }));
+    
+    return {
+      token,
+      user: authData.user,
+      admin: adminData
+    };
+  },
+  
+  // Check if current user is admin
+  isAdmin: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+    
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('id', session.user.id)
+      .eq('is_active', true)
+      .single();
+    
+    return !error && !!data;
+  },
+  
+  // Get admin user info
+  getAdminUser: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+    
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('id', session.user.id)
+      .eq('is_active', true)
+      .single();
+    
+    if (error) return null;
+    return data;
+  },
+  
+  // Admin logout
+  logout: async () => {
+    localStorage.removeItem('adminUser');
+    await auth.removeToken();
   }
 };

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Register from './components/Register';
+import AdminLogin from './components/AdminLogin';
 import Dashboard from './components/Dashboard';
 import Companies from './components/Companies';
 import MyApplications from './components/MyApplications';
@@ -13,6 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import AdminDashboard from './components/AdminDashboard';
 import ManageCompanies from './components/ManageCompanies';
+import ManageJobRoles from './components/ManageJobRoles';
 import ViewApplicants from './components/ViewApplicants';
 import './styles/App.css';
 
@@ -34,6 +36,9 @@ function App() {
         <Route path="/register" element={
           isAuthenticated ? <Navigate to="/dashboard" /> : <Register setAuth={setIsAuthenticated} />
         } />
+        
+        {/* Admin Login Route */}
+        <Route path="/admin/login" element={<AdminLogin />} />
         
         <Route path="/dashboard" element={
           <ProtectedRoute isAuthenticated={isAuthenticated}>
@@ -99,6 +104,12 @@ function App() {
         <Route path="/admin/companies/:id" element={
           <AdminRoute>
             <ManageCompanies />
+          </AdminRoute>
+        } />
+        
+        <Route path="/admin/job-roles" element={
+          <AdminRoute>
+            <ManageJobRoles />
           </AdminRoute>
         } />
         

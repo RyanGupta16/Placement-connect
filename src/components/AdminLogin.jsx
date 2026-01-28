@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authAPI } from '../services/api';
+import { adminAuthAPI } from '../services/api';
 
-function Login() {
+function AdminLogin() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -25,10 +25,10 @@ function Login() {
     setError('');
 
     try {
-      await authAPI.login(formData.email, formData.password);
-      navigate('/dashboard');
+      await adminAuthAPI.login(formData.email, formData.password);
+      navigate('/admin');
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message || 'Admin login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -37,14 +37,17 @@ function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1>Login to PlacementIQ</h1>
-        <p className="auth-subtitle">Access your placement dashboard</p>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '10px' }}>🔐</div>
+          <h1>Admin Login</h1>
+          <p className="auth-subtitle">Access PlacementIQ Admin Dashboard</p>
+        </div>
 
         {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Admin Email</label>
             <input
               type="email"
               id="email"
@@ -52,12 +55,12 @@ function Login() {
               value={formData.email}
               onChange={handleChange}
               required
-              placeholder="Enter your email"
+              placeholder="admin@placementiq.com"
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">Admin Password</label>
             <input
               type="password"
               id="password"
@@ -65,27 +68,25 @@ function Login() {
               value={formData.password}
               onChange={handleChange}
               required
-              placeholder="Enter your password"
+              placeholder="Enter admin password"
             />
           </div>
 
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Logging in...' : 'Login as Admin'}
           </button>
         </form>
 
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <Link to="/admin/login" style={{ color: '#2563eb', textDecoration: 'none', fontSize: '14px' }}>
-            🔐 Admin Login
-          </Link>
+        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: '#666' }}>
+          <p>⚠️ Admin access only. Unauthorized access will be logged.</p>
         </div>
 
         <p className="auth-footer">
-          Don't have an account? <Link to="/register">Register here</Link>
+          <Link to="/login">← Back to Student Login</Link>
         </p>
       </div>
     </div>
   );
 }
 
-export default Login;
+export default AdminLogin;
