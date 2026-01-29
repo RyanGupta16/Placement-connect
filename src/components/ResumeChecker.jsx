@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { auth } from '../services/api';
@@ -76,6 +76,11 @@ const ResumeChecker = () => {
     try {
       const user = await auth.getUser();
       
+      if (!user || !user.id) {
+        console.warn('User not authenticated, skipping feedback save');
+        return;
+      }
+      
       await supabase.from('resume_feedback').insert({
         user_id: user.id,
         resume_id: resumeId,
@@ -108,6 +113,11 @@ const ResumeChecker = () => {
       setProgress(35);
       
       const user = await auth.getUser();
+      
+      if (!user || !user.id) {
+        throw new Error('User not authenticated. Please login again.');
+      }
+      
       const fileName = `${user.id}/${Date.now()}_${file.name}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -201,6 +211,11 @@ const ResumeChecker = () => {
     try {
       const user = await auth.getUser();
       
+      if (!user || !user.id) {
+        console.warn('User not authenticated, skipping history load');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('resume_feedback')
         .select(`
@@ -237,11 +252,16 @@ const ResumeChecker = () => {
   };
 
   const getScoreDescription = (score) => {
-    if (score >= 85) return '🎉 Excellent! Your resume is well-optimized and comprehensive.';
-    if (score >= 70) return '👍 Good! Your resume is solid with room for enhancement.';
-    if (score >= 55) return '📈 Fair. Your resume needs improvements in several areas.';
-    return '⚠️ Needs work. Consider significant revisions.';
+    if (score >= 85) return 'Excellent! Your resume is highly optimized for ATS systems and showcases your qualifications effectively.';
+    if (score >= 70) return 'Good work! Your resume has strong fundamentals with some areas for improvement.';
+    if (score >= 55) return 'Your resume shows potential but needs refinement in several key areas.';
+    return 'Significant improvements needed to enhance ATS compatibility and overall impact.';
   };
+
+  // Load history on component mount
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   const handleLogout = async () => {
     await auth.removeToken();
@@ -363,72 +383,368 @@ const ResumeChecker = () => {
           )}
 
           {result && (
-            <div className="analysis-results">
-              <div className="score-display" style={{ background: getScoreColor(result.optimization_score) }}>
-                <h2>ATS Score</h2>
-                <div className="stat-value">{result.optimization_score}/100</div>
-                <p>{getScoreDescription(result.optimization_score)}</p>
+            <div className="analysis-results" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              {/* Hero Score Section */}
+              <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '20px',
+                padding: '60px 40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '40px',
+                boxShadow: '0 20px 60px rgba(102, 126, 234, 0.3)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Background decoration */}
+                <div style={{
+                  position: 'absolute',
+                  top: '-50%',
+                  right: '-10%',
+                  width: '400px',
+                  height: '400px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '50%',
+                  filter: 'blur(60px)'
+                }}></div>
+                
+                <div style={{ flex: 1, zIndex: 1 }}>
+                  <h2 style={{ 
+                    color: 'white', 
+                    fontSize: '28px', 
+                    fontWeight: '700',
+                    marginBottom: '12px',
+                    letterSpacing: '-0.5px'
+                  }}>Resume Analysis Complete</h2>
+                  <p style={{ 
+                    color: 'rgba(255, 255, 255, 0.9)', 
+                    fontSize: '16px',
+                    lineHeight: '1.6',
+                    maxWidth: '500px'
+                  }}>{getScoreDescription(result.optimization_score)}</p>
+                </div>
+                
+                {/* Circular Score Display */}
+                <div style={{
+                  position: 'relative',
+                  width: '200px',
+                  height: '200px',
+                  zIndex: 1
+                }}>
+                  <svg style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }} viewBox="0 0 200 200">
+                    {/* Background circle */}
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="85"
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.2)"
+                      strokeWidth="12"
+                    />
+                    {/* Progress circle */}
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="85"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="12"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(result.optimization_score / 100) * 534} 534`}
+                      style={{ transition: 'stroke-dasharray 1s ease' }}
+                    />
+                  </svg>
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '48px',
+                      fontWeight: '800',
+                      color: 'white',
+                      lineHeight: '1',
+                      marginBottom: '4px'
+                    }}>{result.optimization_score}</div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: 'rgba(255, 255, 255, 0.8)',
+                      fontWeight: '600',
+                      letterSpacing: '1px'
+                    }}>/ 100</div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      marginTop: '4px',
+                      fontWeight: '500'
+                    }}>ATS SCORE</div>
+                  </div>
+                </div>
               </div>
 
-              <div className="results-grid" style={{
+              {/* Results Grid */}
+              <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                gap: '20px',
-                marginTop: '30px'
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '24px',
+                marginBottom: '32px'
               }}>
-                <div className="result-card" style={{
+                {/* Strengths Card */}
+                <div style={{
                   background: 'white',
-                  padding: '20px',
-                  borderRadius: '10px',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                  borderRadius: '16px',
+                  padding: '32px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid rgba(0, 0, 0, 0.06)',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }} onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.12)';
+                }} onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)';
                 }}>
-                  <h3 style={{ color: '#4caf50', marginBottom: '15px' }}>✓ Strengths</h3>
-                  <ul className="suggestions-list">
-                    {result.strengths?.map((strength, index) => (
-                      <li key={index} style={{ marginBottom: '8px' }}>{strength}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="result-card" style={{
-                  background: 'white',
-                  padding: '20px',
-                  borderRadius: '10px',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-                }}>
-                  <h3 style={{ color: '#ff9800', marginBottom: '15px' }}>• Missing Keywords</h3>
-                  <ul className="suggestions-list">
-                    {result.missing_keywords?.map((keyword, index) => (
-                      <li key={index} style={{ marginBottom: '8px' }}>{keyword}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="result-card" style={{
-                  background: 'white',
-                  padding: '20px',
-                  borderRadius: '10px',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-                }}>
-                  <h3 style={{ color: '#2196f3', marginBottom: '15px' }}>💡 Improvement Suggestions</h3>
-                  <ul className="suggestions-list">
-                    {result.improvement_suggestions?.map((suggestion, index) => (
-                      <li key={index} style={{ marginBottom: '8px' }}>{suggestion}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {result.ats_friendly_tips && result.ats_friendly_tips.length > 0 && (
-                  <div className="result-card" style={{
-                    background: 'white',
-                    padding: '20px',
-                    borderRadius: '10px',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <span style={{ fontSize: '20px' }}>✓</span>
+                    </div>
+                    <h3 style={{ 
+                      fontSize: '18px', 
+                      fontWeight: '700',
+                      color: '#1f2937',
+                      margin: 0
+                    }}>Strengths</h3>
+                  </div>
+                  <ul style={{ 
+                    listStyle: 'none', 
+                    padding: 0, 
+                    margin: 0 
                   }}>
-                    <h3 style={{ color: '#9c27b0', marginBottom: '15px' }}>🔧 ATS-Friendly Tips</h3>
-                    <ul className="suggestions-list">
+                    {result.strengths?.map((strength, index) => (
+                      <li key={index} style={{ 
+                        marginBottom: '12px',
+                        paddingLeft: '24px',
+                        position: 'relative',
+                        color: '#4b5563',
+                        fontSize: '14px',
+                        lineHeight: '1.6'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: '6px',
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: '#10b981'
+                        }}></span>
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Missing Keywords Card */}
+                <div style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  padding: '32px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid rgba(0, 0, 0, 0.06)',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }} onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.12)';
+                }} onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)';
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <span style={{ fontSize: '20px' }}>•</span>
+                    </div>
+                    <h3 style={{ 
+                      fontSize: '18px', 
+                      fontWeight: '700',
+                      color: '#1f2937',
+                      margin: 0
+                    }}>Missing Keywords</h3>
+                  </div>
+                  <ul style={{ 
+                    listStyle: 'none', 
+                    padding: 0, 
+                    margin: 0 
+                  }}>
+                    {result.missing_keywords?.map((keyword, index) => (
+                      <li key={index} style={{ 
+                        marginBottom: '12px',
+                        paddingLeft: '24px',
+                        position: 'relative',
+                        color: '#4b5563',
+                        fontSize: '14px',
+                        lineHeight: '1.6'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: '6px',
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: '#f59e0b'
+                        }}></span>
+                        {keyword}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Improvement Suggestions Card */}
+                <div style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  padding: '32px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid rgba(0, 0, 0, 0.06)',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }} onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.12)';
+                }} onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)';
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <span style={{ fontSize: '20px' }}>💡</span>
+                    </div>
+                    <h3 style={{ 
+                      fontSize: '18px', 
+                      fontWeight: '700',
+                      color: '#1f2937',
+                      margin: 0
+                    }}>Improvement Suggestions</h3>
+                  </div>
+                  <ul style={{ 
+                    listStyle: 'none', 
+                    padding: 0, 
+                    margin: 0 
+                  }}>
+                    {result.improvement_suggestions?.map((suggestion, index) => (
+                      <li key={index} style={{ 
+                        marginBottom: '12px',
+                        paddingLeft: '24px',
+                        position: 'relative',
+                        color: '#4b5563',
+                        fontSize: '14px',
+                        lineHeight: '1.6'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: '6px',
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: '#3b82f6'
+                        }}></span>
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* ATS-Friendly Tips Card */}
+                {result.ats_friendly_tips && result.ats_friendly_tips.length > 0 && (
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '16px',
+                    padding: '32px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                    transition: 'transform 0.2s, box-shadow 0.2s'
+                  }} onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.12)';
+                  }} onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.08)';
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '12px'
+                      }}>
+                        <span style={{ fontSize: '20px' }}>🔧</span>
+                      </div>
+                      <h3 style={{ 
+                        fontSize: '18px', 
+                        fontWeight: '700',
+                        color: '#1f2937',
+                        margin: 0
+                      }}>ATS-Friendly Tips</h3>
+                    </div>
+                    <ul style={{ 
+                      listStyle: 'none', 
+                      padding: 0, 
+                      margin: 0 
+                    }}>
                       {result.ats_friendly_tips.map((tip, index) => (
-                        <li key={index} style={{ marginBottom: '8px' }}>{tip}</li>
+                        <li key={index} style={{ 
+                          marginBottom: '12px',
+                          paddingLeft: '24px',
+                          position: 'relative',
+                          color: '#4b5563',
+                          fontSize: '14px',
+                          lineHeight: '1.6'
+                        }}>
+                          <span style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: '6px',
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: '#8b5cf6'
+                          }}></span>
+                          {tip}
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -436,49 +752,140 @@ const ResumeChecker = () => {
               </div>
 
               {result.disclaimer && (
-                <div className="disclaimer" style={{
-                  background: '#f0f0f0',
-                  padding: '15px',
-                  borderRadius: '5px',
-                  marginTop: '20px',
-                  fontSize: '14px',
-                  color: '#666',
-                  textAlign: 'center'
+                <div style={{
+                  background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                  padding: '20px 24px',
+                  borderRadius: '12px',
+                  marginTop: '24px',
+                  fontSize: '13px',
+                  color: '#6b7280',
+                  textAlign: 'center',
+                  border: '1px solid #d1d5db',
+                  lineHeight: '1.6'
                 }}>
-                  {result.disclaimer}
+                  <span style={{ fontWeight: '600', color: '#4b5563' }}>Note:</span> {result.disclaimer}
                 </div>
               )}
 
-              <button
-                onClick={resetUpload}
-                className="btn-primary"
-                style={{ marginTop: '20px' }}
-              >
-                Analyze Another Resume
-              </button>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                marginTop: '40px' 
+              }}>
+                <button
+                  onClick={resetUpload}
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '14px 32px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 25px rgba(102, 126, 234, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+                  }}
+                >
+                  Analyze Another Resume
+                </button>
+              </div>
             </div>
           )}
 
           {history.length > 0 && (
-            <div className="history-section" style={{ marginTop: '40px' }}>
-              <h2 style={{ color: '#667eea', marginBottom: '20px' }}>Recent Analyses</h2>
-              <div className="history-grid" style={{
+            <div style={{ 
+              marginTop: '64px',
+              paddingTop: '48px',
+              borderTop: '1px solid #e5e7eb'
+            }}>
+              <h2 style={{ 
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#1f2937',
+                marginBottom: '24px'
+              }}>Recent Analyses</h2>
+              <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                gap: '15px'
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: '20px'
               }}>
                 {history.map((item) => (
-                  <div key={item.id} className="history-card" style={{
+                  <div key={item.id} style={{
                     background: 'white',
-                    padding: '15px',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    padding: '24px',
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.12)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
                   }}>
-                    <h4 style={{ marginBottom: '10px' }}>{item.resumes?.file_name || 'Resume'}</h4>
-                    <p>Score: <strong>{item.clarity_score}/100</strong></p>
-                    <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
-                      {new Date(item.analyzed_at).toLocaleDateString()}
-                    </p>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '16px'
+                    }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '10px',
+                        background: `linear-gradient(135deg, ${getScoreColor(item.clarity_score)} 0%, ${getScoreColor(item.clarity_score)}dd 100%)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '18px',
+                        fontWeight: '700',
+                        marginRight: '12px'
+                      }}>
+                        {item.clarity_score}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ 
+                          margin: 0,
+                          fontSize: '15px',
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>{item.resumes?.file_name || 'Resume'}</h4>
+                        <p style={{ 
+                          margin: '4px 0 0 0',
+                          fontSize: '13px',
+                          color: '#6b7280'
+                        }}>
+                          {new Date(item.analyzed_at).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#9ca3af',
+                      fontWeight: '500'
+                    }}>
+                      Score: {item.clarity_score}/100
+                    </div>
                   </div>
                 ))}
               </div>

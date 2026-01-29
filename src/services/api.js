@@ -28,7 +28,7 @@ export const auth = {
     
     // Check if user has profile data
     const { data: profile } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .select('*')
       .eq('id', session.user.id)
       .single();
@@ -81,7 +81,7 @@ export const authAPI = {
     
     // Create profile
     if (data.user) {
-      await supabase.from('profiles').insert({
+      await supabase.from('user_profiles').insert({
         id: data.user.id,
         email,
         name,
@@ -185,6 +185,10 @@ export const jobsAPI = {
   apply: async (jobId, applicationData) => {
     const user = await auth.getUser();
     
+    if (!user || !user.id) {
+      throw new Error('User not authenticated. Please login again.');
+    }
+    
     const { data, error } = await supabase
       .from('applications')
       .insert({
@@ -205,6 +209,10 @@ export const jobsAPI = {
 export const applicationsAPI = {
   getMyApplications: async () => {
     const user = await auth.getUser();
+    
+    if (!user || !user.id) {
+      throw new Error('User not authenticated. Please login again.');
+    }
     
     const { data, error } = await supabase
       .from('applications')
@@ -251,6 +259,11 @@ export const applicationsAPI = {
 export const resumeAPI = {
   analyze: async (file) => {
     const user = await auth.getUser();
+    
+    if (!user || !user.id) {
+      throw new Error('User not authenticated. Please login again.');
+    }
+    
     const token = await auth.getToken();
     
     const formData = new FormData();
@@ -350,9 +363,8 @@ export const adminAPI = {
       .eq('status', 'pending');
     
     const { count: studentsCount } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('role', 'student');
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true });
     
     return {
       totalCompanies: companiesCount || 0,
@@ -369,7 +381,7 @@ export const adminAPI = {
         *,
         job_roles(title),
         companies(name),
-        profiles(name, email)
+        user_profiles(name, email)
       `)
       .order('applied_at', { ascending: false })
       .limit(limit);
@@ -378,8 +390,8 @@ export const adminAPI = {
     
     return (data || []).map(app => ({
       ...app,
-      student_name: app.profiles?.name,
-      email: app.profiles?.email,
+      student_name: app.user_profiles?.name,
+      email: app.user_profiles?.email,
       role_title: app.job_roles?.title,
       company_name: app.companies?.name
     }));
@@ -493,7 +505,7 @@ export const adminAPI = {
         *,
         job_roles(title, company_id),
         companies(name),
-        profiles(name, email)
+        user_profiles(name, email)
       `);
     
     if (filters.company) {
@@ -512,8 +524,8 @@ export const adminAPI = {
     
     return (data || []).map(app => ({
       ...app,
-      student_name: app.profiles?.name,
-      email: app.profiles?.email,
+      student_name: app.user_profiles?.name,
+      email: app.user_profiles?.email,
       role_title: app.job_roles?.title,
       company_name: app.companies?.name
     }));
@@ -544,7 +556,7 @@ export const adminAPI = {
   getApplicantDetails: async (applicationId) => {
     const { data, error } = await supabase
       .from('applications')
-      .select('*, job_roles(*), companies(*), profiles(*)')
+      .select('*, job_roles(*), companies(*), user_profiles(*)')
       .eq('id', applicationId)
       .single();
     
