@@ -420,14 +420,62 @@ export const adminAPI = {
   },
   
   createCompany: async (companyData) => {
-    const { data, error } = await supabase
-      .from('companies')
-      .insert(companyData)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    try {
+      console.log('[createCompany] Starting company creation...');
+      
+      // Check authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('[createCompany] Session error:', sessionError);
+        throw new Error('Failed to get session: ' + sessionError.message);
+      }
+      
+      if (!session) {
+        console.error('[createCompany] No active session');
+        throw new Error('Not authenticated. Please login again.');
+      }
+      
+      console.log('[createCompany] Authenticated as:', session.user.email);
+      console.log('[createCompany] Company data to insert:', companyData);
+
+      // Try to insert with detailed error logging
+      const { data, error } = await supabase
+        .from('companies')
+        .insert(companyData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('[createCompany] Supabase error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        // Provide more specific error messages
+        if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
+          throw new Error('Permission denied: Your admin account does not have permission to create companies. Please contact the super admin.');
+        } else if (error.code === '23505') {
+          throw new Error('A company with this name already exists.');
+        } else {
+          throw new Error(error.message || 'Failed to create company');
+        }
+      }
+      
+      console.log('[createCompany] Success:', data);
+      return data;
+    } catch (err) {
+      console.error('[createCompany] Caught error:', err);
+      
+      // Re-throw with better context
+      if (err.message.includes('Load failed') || err.message.includes('Failed to fetch')) {
+        throw new Error('Network error: Cannot connect to database. Please check your internet connection.');
+      }
+      
+      throw err;
+    }
   },
   
   updateCompany: async (id, companyData) => {

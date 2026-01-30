@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Connection Test</title>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <button id="testBtn">Test Connection</button>
+    <button id="testAuthBtn">Test Auth</button>
+    <button id="testInsertBtn">Test Insert Company</button>
+    <pre id="output"></pre>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+        const supabaseUrl = 'https://xpkpjmnmxwaxopskwwzn.supabase.co'
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwa3BqbW5teHdheG9wc2t3d3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzOTcyNDUsImV4cCI6MjA4MTk3MzI0NX0.O-bzDC6O14fPGoVQuj35lCMy8CRyXOwa4pnK72bM7sk'
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+        const output = document.getElementById('output')
+
+        function log(message) {
+            output.textContent += message + '\n\n'
+            console.log(message)
+        }
+
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            output.textContent = ''
+            log('Testing Supabase connection...')
+            
+            try {
+                const { data, error } = await supabase.from('companies').select('count')
+                if (error) throw error
+                log('✅ Connection successful!')
+                log('Companies count: ' + JSON.stringify(data, null, 2))
+            } catch (err) {
+                log('❌ Error: ' + err.message)
+                log('Full error: ' + JSON.stringify(err, null, 2))
+            }
+        })
+
+        document.getElementById('testAuthBtn').addEventListener('click', async () => {
+            output.textContent = ''
+            log('Testing authentication...')
+            
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession()
+                if (error) throw error
+                
+                if (session) {
+                    log('✅ User is authenticated')
+                    log('User ID: ' + session.user.id)
+                    log('Email: ' + session.user.email)
+                } else {
+                    log('❌ No active session. Please login first.')
+                }
+            } catch (err) {
+                log('❌ Error: ' + err.message)
+            }
+        })
+
+        document.getElementById('testInsertBtn').addEventListener('click', async () => {
+            output.textContent = ''
+            log('Testing company insert...')
+            
+            try {
+                // Check auth first
+                const { data: { session } } = await supabase.auth.getSession()
+                if (!session) {
+                    log('❌ Not authenticated. Login at /admin/login first.')
+                    return
+                }
+                log('✅ Authenticated as: ' + session.user.email)
+
+                const testCompany = {
+                    name: 'Test Company ' + Date.now(),
+                    description: 'Test description',
+                    industry: 'IT',
+                    website: 'https://example.com',
+                    logo_url: '',
+                    min_cgpa: 6.0,
+                    max_active_backlogs: 0,
+                    max_total_backlogs: 0,
+                    eligible_branches: ['Computer Science', 'IT'],
+                    eligible_batches: [2026, 2027],
+                    required_skills: ['JavaScript', 'React'],
+                    is_active: true
+                }
+
+                log('Inserting: ' + JSON.stringify(testCompany, null, 2))
+
+                const { data, error } = await supabase
+                    .from('companies')
+                    .insert(testCompany)
+                    .select()
+                    .single()
+
+                if (error) {
+                    log('❌ Insert failed!')
+                    log('Error code: ' + error.code)
+                    log('Error message: ' + error.message)
+                    log('Error details: ' + error.details)
+                    log('Error hint: ' + error.hint)
+                    throw error
+                }
+
+                log('✅ Company created successfully!')
+                log('Result: ' + JSON.stringify(data, null, 2))
+            } catch (err) {
+                log('❌ Error: ' + err.message)
+                log('Full error: ' + JSON.stringify(err, null, 2))
+            }
+        })
+    </script>
+</body>
+</html>
