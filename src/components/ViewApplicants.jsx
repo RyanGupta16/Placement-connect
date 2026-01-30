@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { adminAPI } from '../services/api';
+import { adminAPI, adminAuthAPI } from '../services/api';
 
 const ViewApplicants = () => {
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ const ViewApplicants = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -81,6 +82,39 @@ const ViewApplicants = () => {
     }
   };
 
+  const handleExportToExcel = async () => {
+    if (!filters.company && !filters.role) {
+      setError('Please select a company or job role to export');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    try {
+      setExporting(true);
+      setError('');
+      
+      const exportParams = {};
+      if (filters.role) {
+        exportParams.job_role_id = filters.role;
+      } else if (filters.company) {
+        exportParams.company_id = filters.company;
+      }
+
+      console.log('Exporting with params:', exportParams);
+
+      const result = await adminAuthAPI.exportApplicantsToExcel(exportParams);
+      
+      setSuccess(`Successfully downloaded ${result.filename}!`);
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (error) {
+      console.error('Export error:', error);
+      setError(error.message || 'Failed to export applicants. Please try again.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const getScoreColor = (score) => {
     if (score >= 80) return '#4caf50';
     if (score >= 60) return '#ff9800';
@@ -120,10 +154,11 @@ const ViewApplicants = () => {
           {error && <div className="error-message">{error}</div>}
           {success && <div className="success-message">{success}</div>}
 
-          <div className="filters-section">
-            <div className="form-group">
-              <label>Filter by Company</label>
-              <select 
+          <div className="filters-section" style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div className="form-group" style={{ flex: 1, minWidth: '200px' }}>
+                <label>Filter by Company</label>
+                <select 
                 name="company" 
                 value={filters.company} 
                 onChange={handleFilterChange}
@@ -137,7 +172,7 @@ const ViewApplicants = () => {
               </select>
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ flex: 1, minWidth: '200px' }}>
               <label>Filter by Role</label>
               <select 
                 name="role" 
@@ -154,7 +189,7 @@ const ViewApplicants = () => {
               </select>
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ flex: 1, minWidth: '200px' }}>
               <label>Filter by Status</label>
               <select 
                 name="status" 
@@ -168,9 +203,46 @@ const ViewApplicants = () => {
                 <option value="rejected">Rejected</option>
               </select>
             </div>
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+              <button 
+                onClick={handleExportToExcel}
+                className="btn-primary"
+                disabled={exporting || (!filters.company && !filters.role)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: exporting ? '#ccc' : '#4caf50',
+                  cursor: exporting || (!filters.company && !filters.role) ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  whiteSpace: 'nowrap'
+                }}
+                title={(!filters.company && !filters.role) ? 'Select a company or role to export' : 'Export to Excel'}
+              >
+                {exporting ? (
+                  <>
+                    <span>Exporting...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📊</span>
+                    <span>Export to Excel</span>
+                  </>
+                )}
+              </button>
+            </div>
+            </div>
           </div>
 
-          <div className="applicants-table-container">
+          <div className="applicants-table-container"
+            style={{ marginTop: '20px' }}
+          >
             <table className="applicants-table">
               <thead>
                 <tr>

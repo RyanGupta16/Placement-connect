@@ -107,7 +107,10 @@ export const authAPI = {
 // Companies API
 export const companiesAPI = {
   getAll: async (filters = {}) => {
-    let query = supabase.from('companies').select('*');
+    let query = supabase
+      .from('companies')
+      .select('*')
+      .eq('is_active', true); // Only show active companies to students
     
     if (filters.search) {
       query = query.ilike('name', `%${filters.search}%`);
@@ -116,9 +119,11 @@ export const companiesAPI = {
       query = query.eq('industry', filters.industry);
     }
     
+    query = query.order('name');
+    
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+    return { companies: data || [], total: data?.length || 0 };
   },
   
   getById: async (id) => {
@@ -705,5 +710,66 @@ export const adminAuthAPI = {
   logout: async () => {
     localStorage.removeItem('adminUser');
     await auth.removeToken();
+  },
+
+  // Export applicants to Excel
+  exportApplicantsToExcel: async ({ company_id, job_role_id }) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated. Please login as admin.');
+      }
+
+      const EDGE_FUNCTION_URL = 'https://xpkpjmnmxwaxopskwwzn.supabase.co/functions/v1/export-applicants';
+
+      console.log('[exportApplicants] Calling edge function with:', { company_id, job_role_id });
+
+      const response = await fetch(EDGE_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhwa3BqbW5teHdheG9wc2t3d3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzOTcyNDUsImV4cCI6MjA4MTk3MzI0NX0.O-bzDC6O14fPGoVQuj35lCMy8CRyXOwa4pnK72bM7sk'
+        },
+        body: JSON.stringify({ company_id, job_role_id })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('[exportApplicants] Error response:', errorData);
+        throw new Error(errorData.error || 'Failed to export applicants');
+      }
+
+      // Get the blob from response
+      const blob = await response.blob();
+      
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'Applicants_Export.xlsx';
+      if (contentDisposition) {
+        const matches = /filename="?(.+)"?/.exec(contentDisposition);
+        if (matches && matches[1]) {
+          filename = matches[1];
+        }
+      }
+
+      console.log('[exportApplicants] Download successful, filename:', filename);
+
+      // Create download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      return { success: true, filename };
+    } catch (error) {
+      console.error('[exportApplicants] Error:', error);
+      throw error;
+    }
   }
 };
